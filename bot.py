@@ -5,7 +5,7 @@
 
 import pyromod.listen
 import sys
-import asyncio  # Kita butuh asyncio untuk sleep
+import asyncio
 from pyrogram import Client, enums
 from config import (
     API_HASH,
@@ -18,12 +18,8 @@ from config import (
     TG_BOT_WORKERS,
 )
 
-
 class Bot(Client):
     def __init__(self):
-        """
-        Inisialisasi Bot dengan parameter Pyrogram Client.
-        """
         super().__init__(
             name="Bot",
             api_hash=API_HASH,
@@ -35,27 +31,25 @@ class Bot(Client):
         self.LOGGER = LOGGER
 
     async def start(self):
-        """
-        Dipanggil saat Bot().run() memulai Pyrogram Client.
-        """
-        # 1) Start Pyrogram Client
+        # 1) Mulai Pyrogram
         try:
             await super().start()
             usr_bot_me = await self.get_me()
             self.username = usr_bot_me.username
             self.namebot = usr_bot_me.first_name
             self.LOGGER(__name__).info(
-                f"TG_BOT_TOKEN detected!\n┌ First Name: {self.namebot}\n└ Username: @{self.username}\n——"
+                f"TG_BOT_TOKEN detected!\n"
+                f"┌ First Name: {self.namebot}\n"
+                f"└ Username: @{self.username}\n——"
             )
         except Exception as a:
             self.LOGGER(__name__).warning(a)
             self.LOGGER(__name__).info(
-                "Bot Berhenti. Gabung Group https://t.me/SharingUserbot untuk Bantuan"
+                "Bot Berhenti. Gabung Group https://t.me/SharingUserbot untuk Bantuan (Error on .start())"
             )
-            # Jika gagal di sini, bot tidak bisa start sama sekali, wajar di-exit
-            sys.exit()
+            sys.exit()  # Kalau gagal .start() di awal, wajar bot exit
 
-        # 2) Cek FORCE_SUB (Channel Wajib Join)
+        # 2) Cek FORCE_SUB
         for key, channel_id in FORCE_SUB.items():
             try:
                 info = await self.get_chat(channel_id)
@@ -63,65 +57,57 @@ class Bot(Client):
                 if not link:
                     await self.export_chat_invite_link(channel_id)
                     link = info.invite_link
-
                 setattr(self, f"invitelink{key}", link)
                 self.LOGGER(__name__).info(
                     f"FORCE_SUB{key} detected!\n┌ Title: {info.title}\n└ Chat ID: {info.id}\n——"
                 )
             except Exception as a:
-                # Jika channel untuk FORCE_SUB tidak bisa diakses, itu fatal
                 self.LOGGER(__name__).warning(a)
                 self.LOGGER(__name__).warning(
                     f"Bot tidak dapat Mengambil link invite dari FORCE_SUB{key}!"
                 )
                 self.LOGGER(__name__).warning(
-                    f"Pastikan @{self.username} adalah admin di Channel Tersebut, Chat ID untuk FORCE_SUB{key}: {channel_id}"
+                    f"Pastikan @{self.username} adalah admin di Channel Tersebut, Chat ID: {channel_id}"
                 )
                 self.LOGGER(__name__).info(
-                    "Bot Berhenti. Gabung Group https://t.me/SharingUserbot untuk Bantuan"
+                    "Bot Berhenti. Gabung Group https://t.me/SharingUserbot untuk Bantuan (Force Sub error)"
                 )
-                sys.exit()  # Tetap exit karena ini kondisi wajib
+                sys.exit()
 
         # 3) Cek CHANNEL_ID Database
         try:
-            # Tambahkan sedikit jeda supaya waktu (timestamp) sinkron
+            # Beri jeda agar sinkronisasi waktu (timestamp) sempat jalan
             await asyncio.sleep(2)
 
             db_channel = await self.get_chat(CHANNEL_ID)
             self.db_channel = db_channel
-            test = await self.send_message(
-                chat_id=db_channel.id,
-                text="Test Message",
-                disable_notification=True
-            )
+            test = await self.send_message(chat_id=db_channel.id, text="Test Message", disable_notification=True)
             await test.delete()
 
             self.LOGGER(__name__).info(
                 f"CHANNEL_ID Database detected!\n┌ Title: {db_channel.title}\n└ Chat ID: {db_channel.id}\n——"
             )
+
         except Exception as e:
-            # Jika gagal kirim "Test Message", TIDAK exit agar bot tetap jalan
             self.LOGGER(__name__).warning(e)
+            # HANYA peringatan. TIDAK exit.
             self.LOGGER(__name__).warning(
-                f"Pastikan @{self.username} adalah admin di Channel DataBase Anda, CHANNEL_ID Saat Ini: {CHANNEL_ID}"
+                f"Pastikan @{self.username} adalah admin di Channel: {CHANNEL_ID}"
             )
             self.LOGGER(__name__).info(
-                "Bot TIDAK berhenti, tapi ada error saat Test Message.\n"
-                "Gabung Group https://t.me/SharingUserbot untuk Bantuan"
+                "Terjadi error saat Test Message, tapi bot TIDAK berhenti.\n"
+                "Jika bingung, gabung Group https://t.me/SharingUserbot untuk Bantuan."
             )
-            # sys.exit() -> Dihapus agar bot TIDAK berhenti
+            # DULU: sys.exit() -> dihapus agar bot tidak mati
 
-        # 4) Selesai inisialisasi
+        # 4) Selesai start
         self.set_parse_mode(enums.ParseMode.HTML)
         self.LOGGER(__name__).info(
             f"[🔥 BERHASIL DIAKTIFKAN! 🔥]\n\n"
             f"BOT Dibuat oleh @{OWNER}\n"
-            f"Jika @{OWNER} Membutuhkan Bantuan, Silahkan Tanyakan di Grup https://t.me/SharingUserbot"
+            "Jika ada kendala, silakan tanya di Grup https://t.me/SharingUserbot"
         )
 
     async def stop(self, *args):
-        """
-        Dipanggil saat Bot().run() dihentikan atau app dimatikan.
-        """
         await super().stop()
         self.LOGGER(__name__).info("Bot stopped.")
