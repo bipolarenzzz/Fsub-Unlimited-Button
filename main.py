@@ -7,9 +7,9 @@ class Bot(Client):
         super().__init__(
             name="my_bot",
             # Dibaca dari environment variable Heroku
-            api_id=int(os.environ["API_ID"]),
+            api_id=int(os.environ["APP_ID"]),
             api_hash=os.environ["API_HASH"],
-            bot_token=os.environ["BOT_TOKEN"],
+            bot_token=os.environ["TG_BOT_TOKEN"],
         )
 
 if __name__ == "__main__":
